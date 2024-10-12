@@ -29,6 +29,16 @@ def preview_timetable():
     image_path = create_timetable_image(selected_courses, session_id)
     return send_file(image_path, mimetype='image/png')
 
+@app.route('/get-timetable', methods=['POST'])
+def get_timetable():
+    selected_courses = request.json.get('courses')
+    tt = create_personalized_timetable(selected_courses)
+    response = app.response_class(
+        response = tt.to_json(orient='values'),
+        mimetype = 'application/json'
+    )
+    return response
+
 
 @app.route('/generate-timetable', methods=['POST'])
 def generate_timetable():
@@ -38,7 +48,7 @@ def generate_timetable():
     image_path = create_timetable_image(selected_courses, session_id)
     return send_file(image_path, as_attachment=True)
 
-def create_timetable_image(selected_courses, session_id):
+def create_personalized_timetable(selected_courses):
     # Load the timetables
     time_slots_file = pd.read_csv('Timetable 2024-25, Sem-I - Time Slots.csv')
     updated_processed_timetable = pd.read_csv('Updated_Processed_Timetable.csv')
@@ -81,6 +91,11 @@ def create_timetable_image(selected_courses, session_id):
                 personalized_timetable.at[slot, day] = display
             elif entries:
                 personalized_timetable.at[slot, day] = entries[0]
+
+    return personalized_timetable
+
+def create_timetable_image(selected_courses, session_id):
+    personalized_timetable = create_personalized_timetable(selected_courses)
 
     # Generate image with a unique filename
     output_path = os.path.join(output_dir, f'Timetable_{session_id}.png')

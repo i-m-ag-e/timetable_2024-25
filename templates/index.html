@@ -15,12 +15,13 @@
             background-color: #f4f4f9;
             color: #333;
         }
-        .pre_image{
+        #pre_image{
             display: flex;
             justify-content: center;
+            flex-direction: column;
+            align-items: center;
         }
         img{
-            display:none;
             width: 70vw;
         }
         
@@ -98,8 +99,42 @@
             margin: 10px;
         }
 
+        button .button-desc {
+            font-weight: bold;
+            font-size: 1em;
+            margin-left: 5px;
+        }
+
         a {
             color: #64b2ff;
+        }
+
+        #edit-area {
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #edit-table {
+            width: 70vw;
+        }
+
+        #edit-table.select-cells-mode td:hover,
+        .selected {
+            background-color: #9b9b9b;
+            cursor: pointer;
+        }
+
+        #edit-options {
+            display: flex;
+            align-items: start;
+            flex-direction: column;
+            width: 75%;
+        }
+
+        .hidden {
+            display: none;
         }
 
         @media (max-width: 600px) {
@@ -127,8 +162,106 @@
 
 <body>
     <h1>IIT Gandhinagar Timetable Portal</h1>
-    <div class="pre_image">    
+    <div id="pre_image" class="hidden">    
+        <button type="button" id="edit-button" aria-label="Edit Timetable">
+            <i class="fa fa-wrench" aria-hidden="true"></i>
+            <span class="button-desc">Edit</span>
+        </button>
+
         <img id="timetable-preview" src="" alt="Timetable Preview"/>
+    </div>
+    <div id="edit-area" class="hiden">
+        <button type="button" id="save-edits" aria-label="Save Changes">
+            <i class="fa fa-check" aria-hidden="true"></i>
+            <span class="button-desc">Save</span>
+        </button>
+        <table role="table" id="edit-table" class="select-cells-mode">
+            <thead>
+                <th>Timetable 2024</th>
+                <th>Monday</th>
+                <th>Tuesday</th>
+                <th>Wednesday</th>
+                <th>Thursday</th>
+                <th>Friday</th>
+            </thead>
+            <tr id="slot-0">
+                <th>8:30-9:50</th>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr id="slot-1">
+                <th>10:00-11:20</th>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr id="slot-2">
+                <th>11:30-12:50</th>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr id="slot-3">
+                <th>13:00-14:00</th>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr id="slot-4">
+                <th>14:00-15:20</th>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr id="slot-5">
+                <th>15:30-16:50</th>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr id="slot-6">
+                <th>17:00-18:20</th>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+        </table>
+        
+        <form id="edit-options" class="hiden">
+            <div id="resolve-clashes" class="hidden">
+                <p>Resolve clashes</p>
+                <select name="Resolve Clashes">
+                    <option selected>Don't resolve</option>
+                </select>
+            </div>
+            <div class="edit-field">
+                <span>Edit Course Name:</span>
+                <input type="text" name="course-name" id="new-course-name" />
+            </div>
+            <div class="edit-field">
+                <span>Edit Course Code:</span>
+                <input type="text" name="course-code" id="new-course-code" />
+            </div>
+            <div class="edit-field">
+                <span>Edit Slot Type:</span>
+                <input type="text" name="slot-type" id="new-slot-type" />
+            </div>
+        </form>
     </div>
     <input name="search-field" id="search-field" placeholder="Search for courses ...">
     <h3>Select Your Courses</h3>
@@ -169,12 +302,62 @@
     </footer>
 
     <script>
+    class Slot {
+        isEmpty;
+        courseCode;
+        courseName;
+        slotType;
+        slotName
+        cell;
+
+        constructor(elem, slotName) {
+            this.cell = elem;
+            this.isEmpty = true;
+            this.slotName = slotName;
+            this.courseCode = this.courseName = this.slotType = null;
+        }
+    }
+
+    const emptyTable = [
+        [ "A1", "B1", "A2", "C2", "B2" ],
+        [ "C1", "D1", "E1", "D2", "E2" ],
+        [ "F1", "G1", "H2", "F2", "G2" ],
+        [ "T1", "T2", "T3", "O1", "O2" ],
+        [ "I1", "J1", "I2", "K2", "J2" ],
+        [ "K1", "L1", "M1", "L2", "M2" ],
+        [ "H1", "N1", "P1", "N2", "P2" ]
+    ];
+
     const searchField = document.getElementById('search-field');
     const rows = document.querySelectorAll('tbody tr');
     const totalCreditsDisplay = document.getElementById('total-credits-display');
-    const prev = document.getElementById("timetable-preview");
+    const prev = document.getElementById("pre_image");
+    const prevImg = document.getElementById("timetable-preview");
     const previewButton = document.getElementById('preview-button');
-    const sessionId = "{{ session_id }}"
+    const sessionId = "{{ session_id }}";
+
+
+    const editArea = document.getElementById('edit-area')
+    const editButton = document.getElementById('edit-button');
+    const edit = document.getElementById("edit-table");
+    const editOptions = document.getElementById('edit-options')
+    const editTable = Array.from(edit.rows)
+        .slice(1) // drop the column headers (days)
+        .map((row, ridx) => Array.from(row.cells)
+                .slice(1) // drop the row headers (time slots)
+                .map((cell, cidx) => {
+                    cell.id = `cell_${ridx}_${cidx}`;
+                    cell.addEventListener('click', selectCell)
+                    return new Slot(cell, emptyTable[ridx][cidx])
+                })
+            );
+    const saveButton = document.getElementById('save-edits');
+    const clashResolver  = document.getElementById('resolve-clashes');
+    const clashResolverSelect  = clashResolver.querySelector("select");
+    const courseNameInput = document.getElementById('new-course-name');
+    const courseCodeInput = document.getElementById('new-course-code');
+    const slotTypeInput = document.getElementById('new-slot-type');
+    let selectedCell = null;
 
     searchField.addEventListener('input', (e) => {
         const searchValue = e.target.value.toLowerCase();
@@ -196,15 +379,18 @@
         totalCreditsDisplay.textContent = `(${totalCredits})`;
     }
 
-    function updatePreview() {
-    const selectedCourses = Array.from(checkboxes)
-        .filter(checkbox => checkbox.checked)
-        .map(checkbox => checkbox.value);
-
-    if (selectedCourses.length === 0) {
-        alert("Please select at least one course to preview.");
-        return;
+    function getSelectedCourses() {
+        return Array.from(checkboxes)
+            .filter(checkbox => checkbox.checked)
+            .map(checkbox => checkbox.value);
     }
+
+    function updatePreview() {
+        const selectedCourses = getSelectedCourses();
+        if (selectedCourses.length === 0) {
+            alert("Please select at least one course to preview.");
+            return;
+        }
 
     // Create a fetch request to generate the timetable image
     fetch(`/preview-timetable`, {
@@ -222,14 +408,115 @@
     })
     .then(blob => {
         const url = URL.createObjectURL(blob);
-        prev.src = url; // Set the src to the blob URL
-        prev.style.display = "block"; // Make the image visible
+        prevImg.src = url; // Set the src to the blob URL
+        prev.style.display = "flex"; // Make the image visible
+        editArea.classList.add("hidden"); // Hide the editing area
     })
     .catch(error => {
         console.error(error);
         alert('Error generating preview: ' + error.message);
     });
 }
+
+    function selectCell(e) {
+        if (selectedCell !== null) {
+            if (selectedCell.cell.id === e.target.id) {
+                unselectCell();
+            }
+            return;
+        }
+
+        let id = e.target.id;
+        // extract i,j from "cell_{i}_{j}" 
+        let [i, j] = id.slice(5)
+            .split('_')
+            .map(n => parseInt(n));
+
+        selectedCell = editTable[i][j];
+        selectedCell.cell.classList.add("selected");
+        edit.classList.remove("select-cells-mode");
+
+        editOptions.classList.remove("hidden");
+
+        let clash = false;
+        const cellContent = selectedCell.cell.innerText.trim();
+        if (cellContent.endsWith("(Clash)")) {
+            clash = true;
+            const courses = cellContent.substring(0, cellContent.length - 7)
+                                       .split('/')
+                                       .map(s => s.trim())
+                                       .slice(0, -1);
+            console.log(courses);
+            for (const course of courses) {
+                const newOption = document.createElement("option");
+                newOption.value = course;
+                newOption.innerText = course;
+                clashResolverSelect.prepend(newOption);
+            }
+            clashResolver.classList.remove("hidden");
+        } else {
+            // drop "XX XXX" from the name
+            const [_, courseName, courseCode, slotType] = cellContent
+                .trim()
+                .match(/(\w{2,3} \d{3})\s+(.*)\s+(Lecture|Lab|Tutorial)/);
+            courseNameInput.value = courseName;
+            courseCodeInput.value = courseCode;
+            slotTypeInput.value = slotType;
+        }
+    }
+
+    function unselectCell() {
+        if (selectedCell === null)
+            return;
+
+        selectedCell.cell.classList.remove("selected");
+        edit.classList.add("select-cells-mode");
+        editOptions.classList.add("hidden");
+
+        courseNameInput.value = "";
+        courseCodeInput.value = "";
+        slotTypeInput.value = "";
+        selectedCell = null;
+    }
+
+    function updateEditTable() {
+        const selectedCourses = getSelectedCourses();
+        if (selectedCourses.length === 0) {
+            prev.style.display = "none";
+            editTable.forEach(row => {
+                row.forEach(slot => {
+                    slot.cell.innerText = slot.slotName;
+                });
+            })
+            return;
+        }
+
+        fetch('/get-timetable', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ courses: selectedCourses })
+        })
+        .then(response => {
+            if (response.ok) {
+                response.json()
+                        .then(displayEditTable);
+                return;
+            }
+            throw new Error("failed to get timetable data")
+        })
+    }
+
+    function displayEditTable(values) {
+        prev.style.display = "none";
+        for (let i = 0; i < values.length; ++i) {
+            const row = values[i].slice(1)
+            for (let j = 0; j < row.length; ++j) {
+                editTable[i][j].cell.innerText = row[j];
+            }
+        }
+    }
 
 
     checkboxes.forEach(checkbox => {
@@ -243,6 +530,20 @@
         updatePreview(); // Update the preview image
     });
 
+    editButton.addEventListener('click', () => {
+        editArea.classList.toggle("hidden");
+        updateEditTable();
+    })
+
+    saveButton.addEventListener('click', () => {
+        editArea.classList.toggle("hidden");
+        if (selectedCell !== null) {
+            unselectCell();
+        }
+        prev.style.display = "flex";
+    })
+
+    updateEditTable();
     updateTotalCredits();
 
 </script>
